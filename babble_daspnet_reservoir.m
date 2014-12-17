@@ -477,7 +477,7 @@ for sec=(sec+1):T % T is the duration of the simulation in seconds.
         axis([0 1000 0 N]);
         subplot(4,1,2)
         plot(outFirings(:,1),outFirings(:,2),'.'); % Plot the output neurons' spikes
-        title('Output Nueron Firings', 'fontweight','bold');
+        title('Output Neuron Firings', 'fontweight','bold');
         axis([0 1000 0 Nout]);
         subplot(4,1,3)
         plot(motFirings(:,1),motFirings(:,2),'.'); % Plot the motor neurons' spikes
@@ -494,7 +494,7 @@ for sec=(sec+1):T % T is the duration of the simulation in seconds.
         imagesc(sout)
         set(gca,'YDir','normal')
         colorbar;
-        title('Synapse Strength between Output Neurons and Motor Nuerons', 'fontweight','bold');
+        title('Synapse Strength between Output Neurons and Motor Neurons', 'fontweight','bold');
         xlabel('postsynaptic motor neruon index', 'fontweight','bold');
         ylabel('presynaptic output neuron index', 'fontweight','bold');
         
