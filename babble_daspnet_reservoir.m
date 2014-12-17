@@ -413,6 +413,7 @@ for sec=(sec+1):T % T is the duration of the simulation in seconds.
                 elseif strcmp(reinforcer, 'range')
                     muscrange = range(smoothmusc(:,sec)); % Range of motor neuron activation during this second.
                     range_hist(sec) = muscrange;
+					display(['Range Threshold: ', num2str(rangethresh)]);
                     display(['Current Range: ', num2str(muscrange)]);
                     temprewhist(1:9)=temprewhist(2:10);
                     % Reward if the range of the muscle activation is above
