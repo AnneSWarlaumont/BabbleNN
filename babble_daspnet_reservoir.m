@@ -496,7 +496,7 @@ for sec=(sec+1):T % T is the duration of the simulation in seconds.
         set(gca,'YDir','normal')
         colorbar;
         title('Synapse Strength between Output Neurons and Motor Neurons', 'fontweight','bold');
-        xlabel('postsynaptic motor neruon index', 'fontweight','bold');
+        xlabel('postsynaptic motor neuron index', 'fontweight','bold');
         ylabel('presynaptic output neuron index', 'fontweight','bold');
         
     end
