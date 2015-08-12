@@ -23,6 +23,9 @@ for nrun = 1:Nruns
     
 end
 
+datatable = table(real_sout_ratios, yoke_sout_ratios, real_sout_sds, yoke_sout_sds);
+writetable(datatable, '~/IVOC-NN-Learning/DataTables/sout_ratios_sds.csv')
+
 real_sout_ratios
 mean(real_sout_ratios)
 yoke_sout_ratios
