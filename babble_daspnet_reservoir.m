@@ -253,9 +253,12 @@ for sec=(sec+1):T % T is the duration of the simulation in seconds.
         v_mot_hist{sec}=[v_mot_hist{sec},v_mot];
         u=u+a.*(0.2*v-u);                   
         u_mot=u_mot+a_mot.*(0.2*v_mot-u_mot);
+
+		% Exponential decay of the traces of presynaptic neuron firing
         STDP(:,t+D+1)=0.95*STDP(:,t+D);                             % tau = 20 ms
         
-        DA=DA*0.995; % Decrease in dopamine concentration over time.
+		% Exponential decay of the dopamine concentration over time.
+        DA=DA*0.995; 
         
         % Modify synaptic weights.
         if (mod(t,10)==0)

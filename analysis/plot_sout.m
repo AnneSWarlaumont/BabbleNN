@@ -23,7 +23,7 @@ imagesc(sout_real.sout,[0,4]); colorbar();
 xlabel('Motor Neuron','FontName','Helvetica','FontSize',10); 
 ylabel('Reservoir Output Neuron','FontName','Helvetica','FontSize',10); 
 title(sprintf('Salience-Reinforced Simulation %i, Synaptic Weights, %i s', 1, sec),'FontName','Helvetica','FontSize',12,'FontWeight','bold');
-print(realFigFname,'-dtiff','-loose','-r600');
+print(realFigFname,'-dtiff','-loose','-r300');
 
 % Plot the yoked control simulation's synaptic weights and save to file
 figure('PaperPosition', [500, 500, 500, 400],'PaperPositionMode','auto');
@@ -31,4 +31,4 @@ imagesc(sout_yoked.sout,[0,4]); colorbar();
 xlabel('Motor Neuron','FontName','Helvetica','FontSize',10); 
 ylabel('Reservoir Output Neuron','FontName','Helvetica','FontSize',10); 
 title(sprintf('Yoked Control Simulation %i, Synaptic Weights, %i s', 1, sec),'FontName','Helvetica','FontSize',12,'FontWeight','bold');
-print(yokeFigFname,'-dtiff','-loose','-r600');
+print(yokeFigFname,'-dtiff','-loose','-r300');
