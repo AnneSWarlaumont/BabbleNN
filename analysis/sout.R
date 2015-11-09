@@ -19,7 +19,7 @@ gg_color_hue <- function(n) {
 }
 cols = gg_color_hue(2)
 
-barplot2(height = c(real_ratios_mean_ci$y,yoke_ratios_mean_ci$y), names.arg = c('Salience Reinforced', 'Yoked control'), col = cols, ylab = 'Presynaptic Agonist Connections / Presynaptic Antagonist Connections', beside = T, plot.ci = T, ci.l = c(real_ratios_mean_ci$ymin,yoke_ratios_mean_ci$ymin), ci.u = c(real_ratios_mean_ci$ymax,yoke_ratios_mean_ci$ymax), ylim = c(0, .03))
+barplot2(height = c(real_ratios_mean_ci$y,yoke_ratios_mean_ci$y), names.arg = c('Salience Reinforced', 'Yoked control'), col = cols, ylab = 'Presynaptic Agonist Connections / Presynaptic Antagonist Connections', beside = T, plot.ci = T, ci.l = c(real_ratios_mean_ci$ymin,yoke_ratios_mean_ci$ymin), ci.u = c(real_ratios_mean_ci$ymax,yoke_ratios_mean_ci$ymax), ylim = c(0, 1.5))
 quartz.save("sout_ratio_barplot.pdf",type="pdf")
 
 barplot2(height = c(real_sds_mean_ci$y,yoke_sds_mean_ci$y), names.arg = c('Salience Reinforced', 'Yoked control'), col = cols, ylab = 'Standard Deviation of Reservoir to Motor Synapse Strengths', beside = T, plot.ci = T, ci.l = c(real_sds_mean_ci$ymin,yoke_sds_mean_ci$ymin), ci.u = c(real_sds_mean_ci$ymax,yoke_sds_mean_ci$ymax), ylim = c(0, .8))
