@@ -23,13 +23,13 @@ http://www.annewarlaumont.org
 For updates, see https://github.com/AnneSWarlaumont/BabbleNN
 """
 
-def sim(simid,path,newT,reinforcer,muscscale,yoke,plotOn):
+def sim(simid,path,T,reinforcer,muscscale,yoke,plotOn):
     
     """
     Starts or restarts a simulation
     
     simid: a unique identifier for this simulation. Should not contain spaces.
-    newT: the length of time the experiment is to run in seconds. This can be
+    T: the length of time the experiment is to run in seconds. This can be
           changed to a longer or shorter value when a simulation is restarted
     reinforcer: the type of reinforcement. For now, must be 'human'.
     muscscale: this scales the activity sent to Praat. 4 is the recommended
@@ -49,7 +49,6 @@ def sim(simid,path,newT,reinforcer,muscscale,yoke,plotOn):
     sm = 4 # maximum synaptic weight
     testint = 1 # number of seconds between vocalizations
     M = 100 # number of synapses per neuron
-    D = 1 # maximal conduction delay
     Ne = 800 # number of excitatory reservoir neurons
     Ni = 200 # number of inhibitory reservoir neurons
     N = Ne + Ni # total number of reservoir neurons
@@ -68,17 +67,39 @@ def sim(simid,path,newT,reinforcer,muscscale,yoke,plotOn):
            # Assign the postsynaptic neurons for each reservoir neuron
     post_mot = np.repeat(np.arange(Nmot)[:,np.newaxis],Nout,1)
                # all output neurons connect to all motor neurons
+    s = np.concatenate((np.random.rand(Ne,M),-1 * np.random.rand(Ni,M)))
+        # synaptic weights within the reservoir
+    sout = np.random.rand(Nout,Nmot) # synaptic weights from output to motor
+    sout = sout / np.mean(sout) # normalize sout
+    sd = np.zeros((Nout,Nmot)) # will store the changes to be made to sout
+    STDP = np.zeros((Nout,1002))
+           # 1000 + 2 milliseconds (assumes 1 ms conduction delays)
+    v = -65 * np.ones((N)) # reservoir membrane potentials
+    v_mot = -65 * np.ones((Nmot)) # motor neuron membrane potentials
+    u = 0.2 * v # reservoir membrane recovery variables
+    u_mot = 0.2 * v_mot # motor neuron membrane recovery variables
+    firings = np.array([-1, 0])
+              # reservoir neuron firings for the current second; 1 s delays
+    outFirings = np.array([-1, 0])
+                 # output neuron firings for the current second; 1 s delays
+    motFirings = np.array([-1, 0])
+                 # motor neuron firings for the current second; 1 s delays
+    DA = 0 # level of dopamine above baseline
+    muscsmooth = 100 # spike train data smoothed by 100 ms moving average
+    sec = 0 # current time in the simulation
+    rew = np.array([]) # track when rewards were received
+
+    # Absolute path where Praat can be found
+    praatPathmac = '/Applications/Praat.app/Contents/MacOS/Praat'
     
     # Set data directory names:
     wavdir = path + '/' + simid + '_Wav'
     firingsdir = path + '/' + simid + '_Firings'
     
-    #Create data directories:
+    # Create data directories:
     if os.path.isdir(wavdir) != True:
         os.mkdir(wavdir)
     if os.path.isdir(firingsdir) != True:
         os.mkdir(firingsdir)
-    
-    
         
           
