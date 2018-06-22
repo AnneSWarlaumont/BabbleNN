@@ -102,4 +102,8 @@ def sim(simid,path,T,reinforcer,muscscale,yoke,plotOn):
     if os.path.isdir(firingsdir) != True:
         os.mkdir(firingsdir)
         
-          
+    # Begin the simulation!
+    for sec in range(sec,T):
+        print('********************************************')
+        print('Second ' + str(sec+1) + ' of ' + str(T))
+        
