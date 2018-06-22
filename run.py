@@ -8,4 +8,5 @@ Created on Fri Jun 22 12:42:32 2018
 import sys
 sys.path.append('/Users/awarlau/Google Drive/Work/IVOC-NN-Learning/BabbleNN')
 import babble_daspnet_reservoir
-babble_daspnet_reservoir.sim('Mortimer','/Users/awarlau/Downloads',7200,'human',4,False,False)
+babble_daspnet_reservoir.sim('Mortimer','/Users/awarlau/Downloads',
+                             7200,'human',4,False,True)
