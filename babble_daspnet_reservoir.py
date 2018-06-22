@@ -28,7 +28,7 @@ def sim(simid,path,newT,reinforcer,muscscale,yoke,plotOn):
     """
     Starts or restarts a simulation
     
-    simid: a unique identifier for this simulation. Must not contain white space
+    simid: a unique identifier for this simulation. Should not contain spaces.
     newT: the length of time the experiment is to run in seconds. This can be
           changed to a longer or shorter value when a simulation is restarted
     reinforcer: the type of reinforcement. For now, must be 'human'.
