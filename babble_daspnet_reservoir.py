@@ -40,7 +40,7 @@ def sim(simid,path,T,reinforcer,muscscale,yoke,plotOn):
           id run, with its data on the path, for the simulation to yoke to.
     plotOn: enables plots of several simulation parameters. Set to False to
             disable plots and to True to enable.
-    Example use: sim('Mortimer','~/Downloads/','7200,'human',4,False,False)
+    Example use: sim('Mortimer','/Users/awarlau/Downloads','7200,'human',4,False,False)
     """
     
     import os, numpy as np
@@ -78,16 +78,16 @@ def sim(simid,path,T,reinforcer,muscscale,yoke,plotOn):
     v_mot = -65 * np.ones((Nmot)) # motor neuron membrane potentials
     u = 0.2 * v # reservoir membrane recovery variables
     u_mot = 0.2 * v_mot # motor neuron membrane recovery variables
-    firings = np.array([-1, 0])
+    firings = [-1, 0]
               # reservoir neuron firings for the current second; 1 s delays
-    outFirings = np.array([-1, 0])
+    outFirings = [-1, 0]
                  # output neuron firings for the current second; 1 s delays
-    motFirings = np.array([-1, 0])
+    motFirings = [-1, 0]
                  # motor neuron firings for the current second; 1 s delays
     DA = 0 # level of dopamine above baseline
     muscsmooth = 100 # spike train data smoothed by 100 ms moving average
     sec = 0 # current time in the simulation
-    rew = np.array([]) # track when rewards were received
+    rew = [] # track when rewards were received
 
     # Absolute path where Praat can be found
     praatPathmac = '/Applications/Praat.app/Contents/MacOS/Praat'
@@ -104,6 +104,36 @@ def sim(simid,path,T,reinforcer,muscscale,yoke,plotOn):
         
     # Begin the simulation!
     for sec in range(sec,T):
+        
         print('********************************************')
         print('Second ' + str(sec+1) + ' of ' + str(T))
         
+        for t in range(0,1000): # millisecond timesteps
+            
+            # give random input to reservoir and motor neurons:
+            I = 20 * (np.random.rand(N,1) - 0.5)
+            I_mot = 20 * (np.random.rand(Nmot,1) - 0.5)
+            
+            # get the indices of fired neurons:
+            fired = v >= 30
+            fired_out = v[0:100] >= 30
+            fired_mot = v_mot >= 30
+            
+            # reset the voltages for the neurons that fired:
+            v[fired] = -65
+            v_mot[fired_mot] = -65
+            
+            # individual neuron dynamics:
+            u[fired] = u[fired] + d[fired]
+            u_mot[fired_mot] = u_mot[fired_mot] + d_mot[fired_mot]
+            
+            # spike-timing dependent plasticity computations:
+            STDP[fired_out,t] = 0.1 # record output neuron spike times
+            for k in range(0,Nmot):
+                if fired_mot[k]:
+                    sd[:,k] = sd[:,k] + STDP[:,t]
+                              # adjust sd for potentiation-eligible synapses
+            
+            # update records of when firings occurred:
+            firings.append()
+            
