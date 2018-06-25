@@ -29,6 +29,8 @@ def sim(simid,path,T,reinforcer,muscscale,yoke,plotOn):
     Starts or restarts a simulation
     
     simid: a unique identifier for this simulation. Should not contain spaces.
+    path: path to the directory where your sim data should be saved. No slash
+          at the end.
     T: the length of time the experiment is to run in seconds. This can be
           changed to a longer or shorter value when a simulation is restarted
     reinforcer: the type of reinforcement. For now, must be 'human'.
@@ -40,13 +42,16 @@ def sim(simid,path,T,reinforcer,muscscale,yoke,plotOn):
           id run, with its data on the path, for the simulation to yoke to.
     plotOn: enables plots of several simulation parameters. Set to False to
             disable plots and to True to enable.
-    Example use: sim('Mortimer','/Users/awarlau/Downloads','7200,'human',4,False,False)
+    Example use: sim('Mortimer','/Users/awarlau/Downloads','7200,'human',4,
+                     False,False)
     """
     
     import os, numpy as np
     
     DAinc = 1 # amount of dopamine given during reward
-    sm = 4 # maximum synaptic weight
+    sm = 4 # maximum synaptic weight; but note that since synaptic weights are
+           # normalized after each update, this isn't the actual max as it was
+           # in Izhikevich's code
     testint = 1 # number of seconds between vocalizations
     M = 100 # number of synapses per neuron
     Ne = 800 # number of excitatory reservoir neurons
@@ -62,7 +67,7 @@ def sim(simid,path,T,reinforcer,muscscale,yoke,plotOn):
             # time scales of the membrane recovery variable for motor neurons
     d_mot = 8 * np.ones((Nmot))
             # membrane recovery variable after-spike shift for motor neurons
-    post = np.ceil(np.concatenate(
+    post = np.floor(np.concatenate(
             (N * np.random.rand(Ne,M), Ne * np.random.rand(Ni,M))))
            # Assign the postsynaptic neurons for each reservoir neuron
     post_mot = np.repeat(np.arange(Nmot)[:,np.newaxis],Nout,1)
@@ -78,11 +83,11 @@ def sim(simid,path,T,reinforcer,muscscale,yoke,plotOn):
     v_mot = -65 * np.ones((Nmot)) # motor neuron membrane potentials
     u = 0.2 * v # reservoir membrane recovery variables
     u_mot = 0.2 * v_mot # motor neuron membrane recovery variables
-    firings = [-1, 0]
+    firings = [[-1, 0]]
               # reservoir neuron firings for the current second; 1 s delays
-    outFirings = [-1, 0]
+    outFirings = [[-1, 0]]
                  # output neuron firings for the current second; 1 s delays
-    motFirings = [-1, 0]
+    motFirings = [[-1, 0]]
                  # motor neuron firings for the current second; 1 s delays
     DA = 0 # level of dopamine above baseline
     muscsmooth = 100 # spike train data smoothed by 100 ms moving average
@@ -128,12 +133,100 @@ def sim(simid,path,T,reinforcer,muscscale,yoke,plotOn):
             u_mot[fired_mot] = u_mot[fired_mot] + d_mot[fired_mot]
             
             # spike-timing dependent plasticity computations:
-            STDP[fired_out,t] = 0.1 # record output neuron spike times
+            STDP[fired_out,t+1] = 0.1 # record output neuron (i.e. presynaptic
+                                      # neuron)spike times.
+                                      # t + 1 = t + D assuming max delay = 1
             for k in range(0,Nmot):
                 if fired_mot[k]:
-                    sd[:,k] = sd[:,k] + STDP[:,t]
-                              # adjust sd for potentiation-eligible synapses
+                    sd[:,k] = sd[:,k] + STDP[:,t] # adjust sd for potentiation-
+                                                  # eligible synapses
+                    motFirings.append([t,k]) # update records of when motor
+                                             # neurons fired
+            for k in range(0,Nout):
+                if fired_out[k]:
+                    outFirings.append([t,k]) # update the records of when
+                                             # output neurons fired
+            for k in range(0,N):
+                if fired[k]:
+                    firings.append([t,k]) # update the records of when
+                                          # reservoir neurons fired
             
-            # update records of when firings occurred:
-            firings.append()
+            # For any presynaptic neuron that fired, calculate the input
+            # current to add to each of its postsynaptic neurons as
+            # proportional to the synaptic strength from the presynaptic to
+            # the postsynaptic neuron:
+            for k in range(0,len(firings)):
+                if firings[k][0] > t:
+                    ind = post[firings[k][1]]
+                    for l in ind:
+                        I[l] = I[l] + s[k][l]
             
+            # Calculate the currents to add to the motor neurons:
+            for k in range(0,len(outFirings)):
+                if outFirings[k][0] > t:
+                    ind_mot = post_mot[firings[k][1]]
+                    for l in ind_mot:
+                        I_mot[l] = I_mot + 2 * s_out[k][l]
+            
+            
+            # Individual neuronal dynamics computations (for numerical
+            # stability the time step is 0.5 ms)
+            v = v + 0.5 * ((0.04 * v + 5) * v + 140 - u + I)
+            v = v + 0.5 * ((0.04 * v + 5) * v + 140 - u + I)
+            v_mot = v_mot + 0.5 * (
+                    (0.04 * v_mot + 5) * v_mot + 140 - u_mot + I_mot)
+            v_mot = v_mot + 0.5 * (
+                    (0.04 * v_mot + 5) * v_mot + 140 - u_mot + I_mot)
+            u = u + a * (0.2 * v - u)
+            u_mot = u_mot + a_mot * (0.2 * v_mot - u_mot)
+            
+            # Exponential decay of the traces of presynaptic neuron firing
+            # with tau = 20 ms
+            STDP[:,t + 2] = 0.95 * STDP[:, t + 1]
+            
+            # Exponential decay of the dopamine concentration over time
+            DA = DA * 0.995
+            
+            # Every 10 ms, modify synaptic weights:
+            if t + 1 % 10 == 0:
+                sout = max(0, min(sm, sout + DA * sd)) # change weights but
+                                                       # keep values between 0
+                                                       # and sm
+                sout = sout / np.mean(sout) # normalize
+                sd = 0.99 * sd # The eligibility trace decays exponentially
+            
+            # Every testint seconds, evaluate the model and maybe give DA
+            elif sec + 1 % testint == 0:
+                
+                # initialize
+                if t == 0:
+                    numfiredmusc1pos = -1 * np.ones(1000)
+                    numfiredmusc1neg = -1 * np.ones(1000)
+                    smoothmuscpos = -1 * np.ones(1000 - muscsmooth)
+                    smoothmuscneg = -1 * np.ones(1000 - muscsmooth)
+                    smoothmusc = -1 * np.ones(1000 - muscsmooth)
+                # Find out which of the agonist and antagonist jaw/lip motor
+                # neurons fired this ms:
+                numfiredmusc1pos[t] = sum(v_mot[0:Nmot/2] >= 30)
+                numfiredmusc1neg[t] = sum(v_mot[Nmot/2-1:Nmot] >= 30)
+                if t == 999:
+                    # Create a moving average of the summed spikes:
+                    for smootht in range(muscsmooth - 1,1000):
+                        smoothmuscpos[smootht-muscsmooth+1] = mean(
+                                numfiredmusc1pos[smootht-muscsmooth+1]:smootht)
+                        smoothmuscneg[smootht-muscsmooth+1] = mean(
+                                numfiredmusc1neg[smootht-muscsmooth+1]:smootht)
+                    smoothmusc = muscscale * (smoothmuscpos - smoothmuscneg)
+                    if reinforcer == 'human':
+                        print('sum(smoothmusc: ' + str(sum(smoothmusc)))
+                        decision = input('Reward the model? Press y or n:\n')
+                        if decision == y:
+                            rew.append(sec*1000+t)
+            
+            if sec*1000+t in rew:
+                DA = DA + DAinc
+        
+        # Prepare STDP and firings for the following 1000 ms
+        STDP[:,0:1] = STDP[:,1000:1001]
+        firings = [[-D, 0]]
+        
