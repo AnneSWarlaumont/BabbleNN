@@ -518,7 +518,7 @@ for sec=(sec+1):T % T is the duration of the simulation in seconds.
     
     
     
-    % Every so often, save the workspace in case the simulation is interupted all data is not lost.
+    % Every so often, save the workspace in case the simulation is interrupted all data is not lost.
     if mod(sec,SAVINTV*testint)==0 || sec==T
         display('Data Saving..... Do not exit program.');
         save(workspaceFilename, '-regexp', '^(?!(v_mot_hist)$).');
