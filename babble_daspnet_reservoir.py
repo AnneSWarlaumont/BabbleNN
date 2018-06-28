@@ -51,10 +51,10 @@ Example use: sim('Mortimer','/Users/awarlau/Downloads','7200,'human',4,
 simid = 'Mortimer'
 path = '/Users/awarlau/Downloads'
 T = 60 * 60 * 2 # sec * min * hr
-reinforcer = 'relhipos'
+reinforcer = 'sumsmoothmusc>0' # 'relhipos'
 thresh = 0
 threshinc = 5
-temprewhistlen = 10
+temprewhistlen = 60
 muscscale = 4
 yoke = False
 plotOn = True
@@ -241,9 +241,9 @@ for sec in range(sec,T):
                     decision = input('Reward the model? Press y or n:\n')
                     if decision == 'y':
                         rew.append(sec*1000+t)
-                elif reinforcer == 'sumsmoothmusc>25':
+                elif reinforcer == 'sumsmoothmusc>0':
                     print('sumsmoothmusc: ' + str(sumsmoothmusc))
-                    if sumsmoothmusc > 25:
+                    if sumsmoothmusc > 0:
                         print('rewarded')
                         rew.append(sec*1000+t)
                 elif reinforcer == 'relhipos':
@@ -261,6 +261,10 @@ for sec in range(sec,T):
                     else:
                         temprewhist[temprewhistlen-1] = False
                     print('sum(temprewhist): ' + str(sum(temprewhist)))
+                if sec >= temprewhistlen:
+                    print(str(temprewhistlen) + ' s avg summsoothmusc: ' +
+                          str(np.mean(np.array(hist_sumsmoothmusc[sec-
+                          temprewhistlen+1:sec+1]))))
         
         if sec*1000+t in rew:
             DA = DA + DAinc
