@@ -50,11 +50,11 @@ Example use: sim('Mortimer','/Users/awarlau/Downloads','7200,'human',4,
 #Temporary, for debugging:
 simid = 'Mortimer'
 path = '/Users/awarlau/Downloads'
-T = 60 * 10 # sec * min * hr
-reinforcer = 'sumsmoothmusc>0' # 'relhipos'
+T = 60 * 60 # sec * min * hr
+reinforcer = 'relhipos' # 'sumsmoothmusc>0'
 thresh = 0
-threshinc = 1
-temprewhistlen = 30
+threshinc = 5
+temprewhistlen = 20
 muscscale = 4
 yoke = False
 plotOn = True
@@ -63,9 +63,6 @@ soutscale = 100
 import os, numpy as np
 
 DAinc = 1 # amount of dopamine given during reward
-sm = 4 # maximum synaptic weight; but note that since synaptic weights are
-       # normalized after each update, this isn't the actual max as it was
-       # in Izhikevich's code
 testint = 1 # number of seconds between vocalizations
 M = 100 # number of synapses per neuron
 Ne = 800 # number of excitatory reservoir neurons
@@ -213,8 +210,6 @@ for sec in range(sec,T):
         if (t + 1) % 10 == 0:
             prevsout = sout # for debugging
             sout = np.maximum(0, sout + DA * sd)
-            # sout = np.maximum(0, np.minimum(sm, sout + DA * sd))
-                   # change weights but keep values between 0 and sm
             sout = soutscale * sout / np.mean(sout) # normalize
             sd = 0.99 * sd # The eligibility trace decays exponentially
         
