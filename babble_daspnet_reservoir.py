@@ -50,7 +50,7 @@ Example use: sim('Mortimer','/Users/awarlau/Downloads','7200,'human',4,
 #Temporary, for debugging:
 simid = 'Mortimer'
 path = '/Users/awarlau/Downloads'
-T = 60 * 60 # sec * min * hr
+T = 60 * 1 # sec * min * hr
 reinforcer = 'agonist_spike' # 'relhipos' # 'sumsmoothmusc>0'
 thresh = 0
 threshinc = 5
@@ -212,10 +212,7 @@ for sec in range(sec,T):
             sout = soutscale * sout / np.mean(sout) # normalize
             sd = 0.99 * sd # The eligibility trace decays exponentially
         
-        # evaluate the model and maybe give DA
-        
-        if reinforcer == 'agonist_spike':
-            
+        # evaluate the model and maybe give DA:
             
         # initialize second-long records of agonist and antagonist spikes
         if t == 0:
@@ -229,6 +226,10 @@ for sec in range(sec,T):
         # neurons fired this ms:
         numfiredmusc1pos[t] = sum(v_mot[0:int(Nmot/2)] >= 30)
         numfiredmusc1neg[t] = sum(v_mot[int(Nmot/2):Nmot] >= 30)
+        
+        if reinforcer == 'agonist_spike':
+            if numfiredmusc1pos[t] > 0:
+                rew.append(sec*1000+t)
         
         if t == 999:
             # Create a moving average of the summed spikes:
@@ -265,6 +266,7 @@ for sec in range(sec,T):
                 else:
                     temprewhist[temprewhistlen-1] = False
                 print('sum(temprewhist): ' + str(sum(temprewhist)))
+            
             if sec >= temprewhistlen:
                 print(str(temprewhistlen) + ' s avg summsoothmusc: ' +
                       str(np.mean(np.array(hist_sumsmoothmusc[sec-
