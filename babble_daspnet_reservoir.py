@@ -50,14 +50,15 @@ Example use: sim('Mortimer','/Users/awarlau/Downloads','7200,'human',4,
 #Temporary, for debugging:
 simid = 'Mortimer'
 path = '/Users/awarlau/Downloads'
-T = 60 * 60 * 2 # sec * min * hr
+T = 60 * 10 # sec * min * hr
 reinforcer = 'sumsmoothmusc>0' # 'relhipos'
 thresh = 0
-threshinc = 5
-temprewhistlen = 60
+threshinc = 1
+temprewhistlen = 30
 muscscale = 4
 yoke = False
 plotOn = True
+soutscale = 100
 
 import os, numpy as np
 
@@ -70,7 +71,7 @@ M = 100 # number of synapses per neuron
 Ne = 800 # number of excitatory reservoir neurons
 Ni = 200 # number of inhibitory reservoir neurons
 N = Ne + Ni # total number of reservoir neurons
-Nout = 100 # number of reservoir output neurons
+Nout = 200 # number of reservoir output neurons
 Nmot = Nout # number of motor neurons
 a = np.concatenate((0.02 * np.ones((Ne)), 0.1 * np.ones((Ni))))
     # time scales of the membrane recovery variable for reservoir neurons
@@ -88,10 +89,9 @@ post_mot = np.repeat(np.arange(Nmot).transpose(),Nout,0)
 s = np.concatenate((np.random.rand(Ne,M),-1 * np.random.rand(Ni,M)))
     # synaptic weights within the reservoir
 sout = np.random.rand(Nout,Nmot) # synaptic weights from output to motor
-sout = sout / np.mean(sout) # normalize sout
+sout = soutscale * sout / np.mean(sout) # normalize sout
 sd = np.zeros((Nout,Nmot)) # will store the changes to be made to sout
-STDP = np.zeros((Nout,1002))
-       # 1000 + 2 milliseconds (assumes 1 ms conduction delays)
+STDP = np.zeros(Nout)
 v = -65 * np.ones((N)) # reservoir membrane potentials
 v_mot = -65 * np.ones((Nmot)) # motor neuron membrane potentials
 u = 0.2 * v # reservoir membrane recovery variables
@@ -130,15 +130,20 @@ for sec in range(sec,T):
     print('********************************************')
     print('Second ' + str(sec+1) + ' of ' + str(T))
     
+    # Reset firings
+    firings = []
+    outFirings = []
+    motFirings = []
+    
     for t in range(0,1000): # millisecond timesteps
         
         # give random input to reservoir and motor neurons:
-        I = 13 * (np.random.rand(N) - 0.5)
-        I_mot = 13 * (np.random.rand(Nmot) - 0.5)
+        I = 13 * (np.random.rand(N))
+        I_mot = 13 * (np.random.rand(Nmot))
         
         # get the indices of fired neurons:
         fired = v >= 30
-        fired_out = v[0:100] >= 30
+        fired_out = v[0:Nout] >= 30
         fired_mot = v_mot >= 30
         
         # reset the voltages for the neurons that fired:
@@ -150,13 +155,13 @@ for sec in range(sec,T):
         u_mot[fired_mot] = u_mot[fired_mot] + d_mot[fired_mot]
         
         # spike-timing dependent plasticity computations:
-        STDP[fired_out,t+1] = 0.1 # record output neuron (i.e. presynaptic
+        STDP[fired_out] = 0.1 # record output neuron (i.e. presynaptic
                                   # neuron)spike times.
                                   # t + 1 = t + D assuming max delay = 1
         for k in range(0,Nmot):
             if fired_mot[k]:
-                sd[:,k] = sd[:,k] + STDP[:,t] # adjust sd for potentiation-
-                                              # eligible synapses
+                sd[:,k] = sd[:,k] + STDP # adjust sd for potentiation-eligible
+                                         # synapses
                 motFirings.append([t,k]) # update records of when motor
                                          # neurons fired
         for k in range(0,Nout):
@@ -199,7 +204,7 @@ for sec in range(sec,T):
         
         # Exponential decay of the traces of presynaptic neuron firing
         # with tau = 20 ms
-        STDP[:,t + 2] = 0.95 * STDP[:, t + 1]
+        STDP = 0.95 * STDP
         
         # Exponential decay of the dopamine concentration over time
         DA = DA * 0.995
@@ -207,9 +212,10 @@ for sec in range(sec,T):
         # Every 10 ms, modify synaptic weights:
         if (t + 1) % 10 == 0:
             prevsout = sout # for debugging
-            sout = np.maximum(0, np.minimum(sm, sout + DA * sd))
+            sout = np.maximum(0, sout + DA * sd)
+            # sout = np.maximum(0, np.minimum(sm, sout + DA * sd))
                    # change weights but keep values between 0 and sm
-            sout = sout / np.mean(sout) # normalize
+            sout = soutscale * sout / np.mean(sout) # normalize
             sd = 0.99 * sd # The eligibility trace decays exponentially
         
         # Every testint seconds, evaluate the model and maybe give DA
@@ -268,16 +274,12 @@ for sec in range(sec,T):
         
         if sec*1000+t in rew:
             DA = DA + DAinc
-    
-    # Prepare STDP and firings for the following 1000 ms
-    STDP[:,0:1] = STDP[:,1000:1001]
-    firings = []
-    outFirings = []
-    motFirings = []
 
 print(round(.1 * T))
 print(np.mean(np.array(hist_sumsmoothmusc[0:round(.1 * T)])))
 print(np.mean(np.array(hist_sumsmoothmusc[sec-round(.1 * T):sec])))
+print(np.mean(np.array(hist_sumsmoothmusc[0:round(.5 * T)])))
+print(np.mean(np.array(hist_sumsmoothmusc[sec-round(.5 * T):sec])))
 print(np.mean(sout[:,0:int(Nmot/2)]))
 print(np.mean(sout[:,int(Nmot/2):Nmot]))
             
