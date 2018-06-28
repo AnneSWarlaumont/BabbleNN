@@ -50,8 +50,8 @@ Example use: sim('Mortimer','/Users/awarlau/Downloads','7200,'human',4,
 #Temporary, for debugging:
 simid = 'Mortimer'
 path = '/Users/awarlau/Downloads'
-T = 60
-reinforcer = 'human'
+T = 60*60*2
+reinforcer = 'relhipos'
 muscscale = 4
 yoke = False
 plotOn = True
@@ -80,7 +80,7 @@ d_mot = 8 * np.ones((Nmot))
 post = np.floor(np.concatenate(
         (N * np.random.rand(Ne,M), Ne * np.random.rand(Ni,M))))
        # Assign the postsynaptic neurons for each reservoir neuron
-post_mot = np.repeat(np.arange(Nmot)[:,np.newaxis],Nout,1)
+post_mot = np.repeat(np.arange(Nmot).transpose(),Nout,0)
            # all output neurons connect to all motor neurons
 s = np.concatenate((np.random.rand(Ne,M),-1 * np.random.rand(Ni,M)))
     # synaptic weights within the reservoir
@@ -93,19 +93,21 @@ v = -65 * np.ones((N)) # reservoir membrane potentials
 v_mot = -65 * np.ones((Nmot)) # motor neuron membrane potentials
 u = 0.2 * v # reservoir membrane recovery variables
 u_mot = 0.2 * v_mot # motor neuron membrane recovery variables
-firings = [[-1, 0]] # Now that we are assuming constant delay of 1 and now
-                    # that we are translating from MATLAB to Python, is it
-                    # possible that we could do away with this [-1 0] first
-                    # element?
-          # reservoir neuron firings for the current second; 1 s delays
-outFirings = [[-1, 0]]
-             # output neuron firings for the current second; 1 s delays
-motFirings = [[-1, 0]]
-             # motor neuron firings for the current second; 1 s delays
+firings = [] # reservoir neuron firings for the current second
+outFirings = [] # output neuron firings for the current second
+motFirings = [] # motor neuron firings for the current second
 DA = 0 # level of dopamine above baseline
 muscsmooth = 100 # spike train data smoothed by 100 ms moving average
 sec = 0 # current time in the simulation
 rew = [] # track when rewards were received
+hist_sumsmoothmusc = [] # keep a record of sumsmoothmusc after each second
+
+# Initialize reward policy variables:
+if reinforcer == 'relhipos':
+    thresh = 0
+    temprewhist = [False] * 10 # Keeps track, for up to 10 previous sounds, of
+                              # when the threshold for reward was exceeded
+    rewcount = 0
 
 # Absolute path where Praat can be found
 praatPathmac = '/Applications/Praat.app/Contents/MacOS/Praat'
@@ -169,7 +171,7 @@ for sec in range(sec,T):
         # proportional to the synaptic strength from the presynaptic to
         # the postsynaptic neuron:
         for k in range(0,len(firings)):
-            if firings[k][0] > t:
+            if firings[k][0] > t-1:
                 for l in range(0,np.size(post,1)):
                     postnum = int(post[firings[k][1], l])
                     I[postnum] = I[postnum] + s[firings[k][1], l]
@@ -201,15 +203,15 @@ for sec in range(sec,T):
         DA = DA * 0.995
         
         # Every 10 ms, modify synaptic weights:
-        if t + 1 % 10 == 0:
-            sout = max(0, min(sm, sout + DA * sd)) # change weights but
-                                                   # keep values between 0
-                                                   # and sm
+        if (t + 1) % 10 == 0:
+            prevsout = sout # for debugging
+            sout = np.maximum(0, np.minimum(sm, sout + DA * sd))
+                   # change weights but keep values between 0 and sm
             sout = sout / np.mean(sout) # normalize
             sd = 0.99 * sd # The eligibility trace decays exponentially
         
         # Every testint seconds, evaluate the model and maybe give DA
-        elif (sec + 1) % testint == 0:
+        if (sec + 1) % testint == 0:
             
             # initialize
             if t == 0:
@@ -230,26 +232,48 @@ for sec in range(sec,T):
                     smoothmuscneg[smootht-muscsmooth+1] = np.mean(
                             numfiredmusc1neg[smootht-muscsmooth+1:smootht])
                 smoothmusc = muscscale * (smoothmuscpos - smoothmuscneg)
+                sumsmoothmusc = sum(smoothmusc)
+                hist_sumsmoothmusc.append(sumsmoothmusc)
                 if reinforcer == 'human':
                     print('sum(smoothmusc): ' + str(sum(smoothmusc)))
                     decision = input('Reward the model? Press y or n:\n')
                     if decision == 'y':
                         rew.append(sec*1000+t)
+                elif reinforcer == 'sumsmoothmusc>25':
+                    print('sumsmoothmusc: ' + str(sumsmoothmusc))
+                    if sumsmoothmusc > 25:
+                        print('rewarded')
+                        rew.append(sec*1000+t)
+                elif reinforcer == 'relhipos':
+                    print('sumsmoothmusc: ' + str(sumsmoothmusc))
+                    print('threshold: ' + str(thresh))
+                    temprewhist[0:9] = temprewhist[1:10]
+                    if sumsmoothmusc > thresh:
+                        print('rewarded')
+                        rew.append(sec*1000+t)
+                        rewcount = rewcount + 1
+                        temprewhist[9] = True
+                        if sum(temprewhist)>=5:
+                            thresh = thresh + 5
+                            temprewhist = [False] * 10
+                    else:
+                        display('not rewarded')
+                        temprewhist[9] = False
+                    print('temprewhist: ' + str(temprewhist))
+                    print('sum(temprewhist): ' + str(sum(temprewhist)))
         
         if sec*1000+t in rew:
             DA = DA + DAinc
     
-#        # Prepare STDP and firings for the following 1000 ms
-#        STDP[:,0:1] = STDP[:,1000:1001]
-#        newfirings = [[-1, 0]]
-#        # If firings' times (in the first element of each list element's
-#        # sublist) are never > 999, then I think we can simplify this code by
-#        # deleting the following for loop. Same for outFirings and motFirings
-#        for ind in range (1, len(firings)):
-#            if firings[ind][0] > 999
-#            newfirings.append([firings[ind][0]-1000, firings[ind][1]])
-#        firings = newfirings
-#        newoutFirings = [[-1, 0]]
-#        for ind in range (1,  len(outFirings))
+    # Prepare STDP and firings for the following 1000 ms
+    STDP[:,0:1] = STDP[:,1000:1001]
+    firings = []
+    outFirings = []
+    motFirings = []
+
+print(np.mean(np.array(hist_sumsmoothmusc[0:100])))
+print(np.mean(np.array(hist_sumsmoothmusc[sec-100:sec])))
+print(np.mean(sout[:,0:int(Nmot/2)]))
+print(np.mean(sout[:,int(Nmot/2):Nmot]))
             
         
