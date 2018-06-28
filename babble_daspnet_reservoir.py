@@ -51,7 +51,7 @@ Example use: sim('Mortimer','/Users/awarlau/Downloads','7200,'human',4,
 simid = 'Mortimer'
 path = '/Users/awarlau/Downloads'
 T = 60 * 60 # sec * min * hr
-reinforcer = 'relhipos' # 'sumsmoothmusc>0'
+reinforcer = 'agonist_spike' # 'relhipos' # 'sumsmoothmusc>0'
 thresh = 0
 threshinc = 5
 temprewhistlen = 20
@@ -63,7 +63,6 @@ soutscale = 100
 import os, numpy as np
 
 DAinc = 1 # amount of dopamine given during reward
-testint = 1 # number of seconds between vocalizations
 M = 100 # number of synapses per neuron
 Ne = 800 # number of excitatory reservoir neurons
 Ni = 200 # number of inhibitory reservoir neurons
@@ -213,59 +212,63 @@ for sec in range(sec,T):
             sout = soutscale * sout / np.mean(sout) # normalize
             sd = 0.99 * sd # The eligibility trace decays exponentially
         
-        # Every testint seconds, evaluate the model and maybe give DA
-        if (sec + 1) % testint == 0:
+        # evaluate the model and maybe give DA
+        
+        if reinforcer == 'agonist_spike':
             
-            # initialize
-            if t == 0:
-                numfiredmusc1pos = -1 * np.ones(1000)
-                numfiredmusc1neg = -1 * np.ones(1000)
-                smoothmuscpos = -1 * np.ones(1000 - muscsmooth)
-                smoothmuscneg = -1 * np.ones(1000 - muscsmooth)
-                smoothmusc = -1 * np.ones(1000 - muscsmooth)
-            # Find out which of the agonist and antagonist jaw/lip motor
-            # neurons fired this ms:
-            numfiredmusc1pos[t] = sum(v_mot[0:int(Nmot/2)] >= 30)
-            numfiredmusc1neg[t] = sum(v_mot[int(Nmot/2):Nmot] >= 30)
-            if t == 999:
-                # Create a moving average of the summed spikes:
-                for smootht in range(muscsmooth - 1,999):
-                    smoothmuscpos[smootht-muscsmooth+1] = np.mean(
-                            numfiredmusc1pos[smootht-muscsmooth+1:smootht])
-                    smoothmuscneg[smootht-muscsmooth+1] = np.mean(
-                            numfiredmusc1neg[smootht-muscsmooth+1:smootht])
-                smoothmusc = muscscale * (smoothmuscpos - smoothmuscneg)
-                sumsmoothmusc = sum(smoothmusc)
-                hist_sumsmoothmusc.append(sumsmoothmusc)
-                if reinforcer == 'human':
-                    print('sum(smoothmusc): ' + str(sum(smoothmusc)))
-                    decision = input('Reward the model? Press y or n:\n')
-                    if decision == 'y':
-                        rew.append(sec*1000+t)
-                elif reinforcer == 'sumsmoothmusc>0':
-                    print('sumsmoothmusc: ' + str(sumsmoothmusc))
-                    if sumsmoothmusc > 0:
-                        print('rewarded')
-                        rew.append(sec*1000+t)
-                elif reinforcer == 'relhipos':
-                    print('sumsmoothmusc: ' + str(sumsmoothmusc))
-                    print('threshold: ' + str(thresh))
-                    temprewhist[0:temprewhistlen-1] = temprewhist[1:temprewhistlen]
-                    if sumsmoothmusc > thresh:
-                        print('rewarded')
-                        rew.append(sec*1000+t)
-                        rewcount = rewcount + 1
-                        temprewhist[temprewhistlen-1] = True
-                        if sum(temprewhist)>=(.5 * temprewhistlen):
-                            thresh = thresh + threshinc
-                            temprewhist = [False] * temprewhistlen
-                    else:
-                        temprewhist[temprewhistlen-1] = False
-                    print('sum(temprewhist): ' + str(sum(temprewhist)))
-                if sec >= temprewhistlen:
-                    print(str(temprewhistlen) + ' s avg summsoothmusc: ' +
-                          str(np.mean(np.array(hist_sumsmoothmusc[sec-
-                          temprewhistlen+1:sec+1]))))
+            
+        # initialize second-long records of agonist and antagonist spikes
+        if t == 0:
+            numfiredmusc1pos = -1 * np.ones(1000)
+            numfiredmusc1neg = -1 * np.ones(1000)
+            smoothmuscpos = -1 * np.ones(1000 - muscsmooth)
+            smoothmuscneg = -1 * np.ones(1000 - muscsmooth)
+            smoothmusc = -1 * np.ones(1000 - muscsmooth)
+        
+        # Find out which of the agonist and antagonist jaw/lip motor
+        # neurons fired this ms:
+        numfiredmusc1pos[t] = sum(v_mot[0:int(Nmot/2)] >= 30)
+        numfiredmusc1neg[t] = sum(v_mot[int(Nmot/2):Nmot] >= 30)
+        
+        if t == 999:
+            # Create a moving average of the summed spikes:
+            for smootht in range(muscsmooth - 1,999):
+                smoothmuscpos[smootht-muscsmooth+1] = np.mean(
+                        numfiredmusc1pos[smootht-muscsmooth+1:smootht])
+                smoothmuscneg[smootht-muscsmooth+1] = np.mean(
+                        numfiredmusc1neg[smootht-muscsmooth+1:smootht])
+            smoothmusc = muscscale * (smoothmuscpos - smoothmuscneg)
+            sumsmoothmusc = sum(smoothmusc)
+            hist_sumsmoothmusc.append(sumsmoothmusc)
+            if reinforcer == 'human':
+                print('sum(smoothmusc): ' + str(sum(smoothmusc)))
+                decision = input('Reward the model? Press y or n:\n')
+                if decision == 'y':
+                    rew.append(sec*1000+t)
+            elif reinforcer == 'sumsmoothmusc>0':
+                print('sumsmoothmusc: ' + str(sumsmoothmusc))
+                if sumsmoothmusc > 0:
+                    print('rewarded')
+                    rew.append(sec*1000+t)
+            elif reinforcer == 'relhipos':
+                print('sumsmoothmusc: ' + str(sumsmoothmusc))
+                print('threshold: ' + str(thresh))
+                temprewhist[0:temprewhistlen-1] = temprewhist[1:temprewhistlen]
+                if sumsmoothmusc > thresh:
+                    print('rewarded')
+                    rew.append(sec*1000+t)
+                    rewcount = rewcount + 1
+                    temprewhist[temprewhistlen-1] = True
+                    if sum(temprewhist)>=(.5 * temprewhistlen):
+                        thresh = thresh + threshinc
+                        temprewhist = [False] * temprewhistlen
+                else:
+                    temprewhist[temprewhistlen-1] = False
+                print('sum(temprewhist): ' + str(sum(temprewhist)))
+            if sec >= temprewhistlen:
+                print(str(temprewhistlen) + ' s avg summsoothmusc: ' +
+                      str(np.mean(np.array(hist_sumsmoothmusc[sec-
+                      temprewhistlen+1:sec+1]))))
         
         if sec*1000+t in rew:
             DA = DA + DAinc
