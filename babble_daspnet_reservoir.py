@@ -50,8 +50,11 @@ Example use: sim('Mortimer','/Users/awarlau/Downloads','7200,'human',4,
 #Temporary, for debugging:
 simid = 'Mortimer'
 path = '/Users/awarlau/Downloads'
-T = 60*20
+T = 60 * 60 * 2 # sec * min * hr
 reinforcer = 'relhipos'
+thresh = 0
+threshinc = 5
+temprewhistlen = 10
 muscscale = 4
 yoke = False
 plotOn = True
@@ -104,8 +107,6 @@ hist_sumsmoothmusc = [] # keep a record of sumsmoothmusc after each second
 
 # Initialize reward policy variables:
 if reinforcer == 'relhipos':
-    thresh = 0
-    temprewhistlen = 25
     temprewhist = [False] * temprewhistlen # Keeps track, for up to 10 previous sounds, of
                               # when the threshold for reward was exceeded
     rewcount = 0
@@ -255,10 +256,9 @@ for sec in range(sec,T):
                         rewcount = rewcount + 1
                         temprewhist[temprewhistlen-1] = True
                         if sum(temprewhist)>=(.5 * temprewhistlen):
-                            thresh = thresh + 5
+                            thresh = thresh + threshinc
                             temprewhist = [False] * temprewhistlen
                     else:
-                        display('not rewarded')
                         temprewhist[temprewhistlen-1] = False
                     print('sum(temprewhist): ' + str(sum(temprewhist)))
         
@@ -271,8 +271,9 @@ for sec in range(sec,T):
     outFirings = []
     motFirings = []
 
-print(np.mean(np.array(hist_sumsmoothmusc[0:500])))
-print(np.mean(np.array(hist_sumsmoothmusc[sec-500:sec])))
+print(round(.1 * T))
+print(np.mean(np.array(hist_sumsmoothmusc[0:round(.1 * T)])))
+print(np.mean(np.array(hist_sumsmoothmusc[sec-round(.1 * T):sec])))
 print(np.mean(sout[:,0:int(Nmot/2)]))
 print(np.mean(sout[:,int(Nmot/2):Nmot]))
             
