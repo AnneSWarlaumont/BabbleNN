@@ -105,7 +105,8 @@ hist_sumsmoothmusc = [] # keep a record of sumsmoothmusc after each second
 # Initialize reward policy variables:
 if reinforcer == 'relhipos':
     thresh = 0
-    temprewhist = [False] * 100 # Keeps track, for up to 10 previous sounds, of
+    temprewhistlen = 25
+    temprewhist = [False] * temprewhistlen # Keeps track, for up to 10 previous sounds, of
                               # when the threshold for reward was exceeded
     rewcount = 0
 
@@ -223,7 +224,7 @@ for sec in range(sec,T):
             # Find out which of the agonist and antagonist jaw/lip motor
             # neurons fired this ms:
             numfiredmusc1pos[t] = sum(v_mot[0:int(Nmot/2)] >= 30)
-            numfiredmusc1neg[t] = sum(v_mot[int(Nmot/2)-1:Nmot] >= 30)
+            numfiredmusc1neg[t] = sum(v_mot[int(Nmot/2):Nmot] >= 30)
             if t == 999:
                 # Create a moving average of the summed spikes:
                 for smootht in range(muscsmooth - 1,999):
@@ -247,18 +248,18 @@ for sec in range(sec,T):
                 elif reinforcer == 'relhipos':
                     print('sumsmoothmusc: ' + str(sumsmoothmusc))
                     print('threshold: ' + str(thresh))
-                    temprewhist[0:99] = temprewhist[1:100]
+                    temprewhist[0:temprewhistlen-1] = temprewhist[1:temprewhistlen]
                     if sumsmoothmusc > thresh:
                         print('rewarded')
                         rew.append(sec*1000+t)
                         rewcount = rewcount + 1
-                        temprewhist[99] = True
-                        if sum(temprewhist)>=50:
+                        temprewhist[temprewhistlen-1] = True
+                        if sum(temprewhist)>=(.5 * temprewhistlen):
                             thresh = thresh + 5
-                            temprewhist = [False] * 100
+                            temprewhist = [False] * temprewhistlen
                     else:
                         display('not rewarded')
-                        temprewhist[99] = False
+                        temprewhist[temprewhistlen-1] = False
                     print('sum(temprewhist): ' + str(sum(temprewhist)))
         
         if sec*1000+t in rew:
