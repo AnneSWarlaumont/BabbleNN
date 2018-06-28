@@ -50,7 +50,7 @@ Example use: sim('Mortimer','/Users/awarlau/Downloads','7200,'human',4,
 #Temporary, for debugging:
 simid = 'Mortimer'
 path = '/Users/awarlau/Downloads'
-T = 60*60*2
+T = 60*20
 reinforcer = 'relhipos'
 muscscale = 4
 yoke = False
@@ -105,7 +105,7 @@ hist_sumsmoothmusc = [] # keep a record of sumsmoothmusc after each second
 # Initialize reward policy variables:
 if reinforcer == 'relhipos':
     thresh = 0
-    temprewhist = [False] * 10 # Keeps track, for up to 10 previous sounds, of
+    temprewhist = [False] * 100 # Keeps track, for up to 10 previous sounds, of
                               # when the threshold for reward was exceeded
     rewcount = 0
 
@@ -247,19 +247,18 @@ for sec in range(sec,T):
                 elif reinforcer == 'relhipos':
                     print('sumsmoothmusc: ' + str(sumsmoothmusc))
                     print('threshold: ' + str(thresh))
-                    temprewhist[0:9] = temprewhist[1:10]
+                    temprewhist[0:99] = temprewhist[1:100]
                     if sumsmoothmusc > thresh:
                         print('rewarded')
                         rew.append(sec*1000+t)
                         rewcount = rewcount + 1
-                        temprewhist[9] = True
-                        if sum(temprewhist)>=5:
+                        temprewhist[99] = True
+                        if sum(temprewhist)>=50:
                             thresh = thresh + 5
-                            temprewhist = [False] * 10
+                            temprewhist = [False] * 100
                     else:
                         display('not rewarded')
-                        temprewhist[9] = False
-                    print('temprewhist: ' + str(temprewhist))
+                        temprewhist[99] = False
                     print('sum(temprewhist): ' + str(sum(temprewhist)))
         
         if sec*1000+t in rew:
@@ -271,8 +270,8 @@ for sec in range(sec,T):
     outFirings = []
     motFirings = []
 
-print(np.mean(np.array(hist_sumsmoothmusc[0:100])))
-print(np.mean(np.array(hist_sumsmoothmusc[sec-100:sec])))
+print(np.mean(np.array(hist_sumsmoothmusc[0:500])))
+print(np.mean(np.array(hist_sumsmoothmusc[sec-500:sec])))
 print(np.mean(sout[:,0:int(Nmot/2)]))
 print(np.mean(sout[:,int(Nmot/2):Nmot]))
             
