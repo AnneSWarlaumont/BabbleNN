@@ -181,7 +181,7 @@ for sec in range(sec,T):
             if outFirings[k][0] > t:
                 for l in range(0,np.size(post_mot,1)):
                     postnum = int(post_mot[outFirings[k][1], l])
-                    I_mot[postnum] = I_mot[postnum] + sout[outFirings[k][1], l]
+                    I_mot[postnum] = I_mot[postnum] + 2 * sout[outFirings[k][1], l]
         
         
         # Individual neuronal dynamics computations (for numerical
