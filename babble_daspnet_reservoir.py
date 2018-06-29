@@ -50,8 +50,8 @@ Example use: sim('Mortimer','/Users/awarlau/Downloads','7200,'human',4,
 #Temporary, for debugging:
 simid = 'Mortimer'
 path = '/Users/awarlau/Downloads'
-T = 60 * 1 # sec * min * hr
-reinforcer = 'agonist_spike' # 'relhipos' # 'sumsmoothmusc>0'
+T = 60 * 30 # sec * min * hr
+reinforcer = 'relhipos' # 'agonist_spike' # 'relhipos' #  # 'sumsmoothmusc>0'
 thresh = 0
 threshinc = 5
 temprewhistlen = 20
@@ -59,6 +59,7 @@ muscscale = 4
 yoke = False
 plotOn = True
 soutscale = 100
+STDPadd = 1000
 
 import os, numpy as np
 
@@ -151,9 +152,8 @@ for sec in range(sec,T):
         u_mot[fired_mot] = u_mot[fired_mot] + d_mot[fired_mot]
         
         # spike-timing dependent plasticity computations:
-        STDP[fired_out] = 0.1 # record output neuron (i.e. presynaptic
-                                  # neuron)spike times.
-                                  # t + 1 = t + D assuming max delay = 1
+        STDP[fired_out] = STDPadd # record output neuron (i.e.
+                                  # presynaptic neuron)spike times.
         for k in range(0,Nmot):
             if fired_mot[k]:
                 sd[:,k] = sd[:,k] + STDP # adjust sd for potentiation-eligible
